@@ -1,0 +1,51 @@
+import processing.serial.*;
+
+Serial myPort;
+float[] sensorPixels = new float[256]; // Holds the 16x16 sensor data
+int sensorSize = 16; // Sensor grid size
+int displaySize = 640; // Display window size
+int pixelSize = displaySize / 64; // Calculate pixel size for the 64x64 display grid
+
+void settings() {
+    size(displaySize, displaySize, P2D); // Define the size here
+}
+
+void setup() {
+  size(displaySize, displaySize);
+  colorMode(HSB, 360, 100, 100);
+  println(Serial.list());
+  myPort = new Serial(this, Serial.list()[0], 115200);
+  myPort.bufferUntil('\n');
+}
+
+void draw() {
+  background(0);
+
+  // Interpolate and draw each "pixel" in the 64x64 grid
+  for (int i = 0; i < 64; i++) {
+    for (int j = 0; j < 64; j++) {
+      // Find corresponding sensor data for interpolation
+      int sensorX = i / 4; // Mapping 64x64 to 16x16
+      int sensorY = j / 4;
+      float temp = sensorPixels[sensorY * sensorSize + sensorX]; // Use nearest for simplicity
+      
+      // Alternatively, implement bilinear interpolation based on neighboring pixels for smoother transitions
+      
+      // Map temperature to a color range
+      float hue = map(temp, 20, 40, 0, 120); // Adjust this range based on your data
+      fill(hue, 100, 100);
+      rect(i * pixelSize, j * pixelSize, pixelSize, pixelSize); // Draw interpolated "pixel"
+    }
+  }
+}
+
+void serialEvent(Serial myPort) {
+  String inString = myPort.readStringUntil('\n');
+  if (inString != null) {
+    inString = trim(inString);
+    String[] nums = split(inString, ',');
+    for (int i = 0; i < min(nums.length, 256); i++) {
+      sensorPixels[i] = float(nums[i]);
+    }
+  }
+}
